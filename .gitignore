@@ -3,5 +3,7 @@
 .env
 
 status.txt
+TESTAUSTA.js
+
 .eslintrc.js
 .eslintignore

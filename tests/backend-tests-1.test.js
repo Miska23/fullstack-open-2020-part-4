@@ -17,12 +17,15 @@ describe('Tests by Miska:', () => {
     })
     test('sums the likes of all blogs', () => {
       const result = listHelper.totalLikes(testBlogs.manyBlogsList)
-      const allLikes = (blogs) => {
-        return blogs.reduce((accumulator, blog) => {
-          return accumulator + blog.likes
-        }, 0)
-      }
-      expect(result).toBe(allLikes(testBlogs.manyBlogsList))
+      const allLikes = 34
+      expect(result).toBe(allLikes)
+    })
+  })
+  describe('The blog with most likes :', () => {
+    test('has the most likes', () => {
+      const result = listHelper.favoriteBlog(testBlogs.manyBlogsList)
+      const mostLikedBlog = testBlogs.manyBlogsList[2]
+      expect(result).toEqual(mostLikedBlog)
     })
   })
 })

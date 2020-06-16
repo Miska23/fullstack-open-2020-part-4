@@ -24,8 +24,21 @@ describe('Tests by Miska:', () => {
   describe('The blog with most likes :', () => {
     test('has the most likes', () => {
       const result = listHelper.favoriteBlog(testBlogs.manyBlogsList)
-      const mostLikedBlog = testBlogs.manyBlogsList[2]
+      const mostLikedBlog = testBlogs.manyBlogsList[3]
       expect(result).toEqual(mostLikedBlog)
     })
   })
+  describe('The blogger with most :', () => {
+    test('blogs', () => {
+      const result = listHelper.mostBlogs(testBlogs.manyBlogsList)
+      const mostBlogs = { author: 'Edsger W. Dijkstra', blogs: 2 }
+      expect(result).toEqual(mostBlogs)
+    })
+    test('likes', () => {
+      const result = listHelper.mostLikes(testBlogs.manyBlogsList)
+      const mostLikes = { author: 'Edsger W. Dijkstra', likes: 17 }
+      expect(result).toEqual(mostLikes)
+    })
+  })
 })
+

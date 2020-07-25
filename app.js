@@ -10,7 +10,6 @@ const mongoose = require('mongoose')
 //! blog-modelissa ja blogs-kontrollerissa on tietokantaan liittyviä
 //! määrityksiä joita ei ollut tehtävän 4.1 alkuperäisessä koodissa
 
-
 logger.info('connecting to', config.MONGODB_URI)
 
 mongoose.connect(config.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true , useCreateIndex: true  })

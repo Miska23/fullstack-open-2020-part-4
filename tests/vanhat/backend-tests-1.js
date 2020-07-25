@@ -1,5 +1,5 @@
-const testBlogs = require('../utils/testBlogs')
-const listHelper = require('../utils/list_helper')
+const testBlogs = require('../../utils/testBlogs')
+const listHelper = require('../../utils/list_helper')
 
 describe('Tests by Miska:', () => {
   test('dummy test returns one', () => {

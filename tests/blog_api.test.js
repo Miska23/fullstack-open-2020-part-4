@@ -90,7 +90,7 @@ test('if blog is added without likes, likes will set to 0', async () => {
 
   const response = await api.get('/api/blogs')
 
-  expect(response.body[3].likes).toBe(0)
+  expect(response.body[2].likes).toBe(0)
 })
 
 // TODO: 4.12 jo uusi blogi ei sisällä kenttiä title ja url, pyyntöön vastataan statuskoodilla 400 Bad request

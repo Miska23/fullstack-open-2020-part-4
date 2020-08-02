@@ -7,7 +7,7 @@ blogsRouter.get('/', (request, response) => {
   Blog
     .find({})
     .then(blogs => {
-      response.json(blogs)
+      response.json(blogs.map(blog => blog.toJSON()))
     })
 })
 
@@ -23,13 +23,20 @@ blogsRouter.get('/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
+//! virheellinen post ei johda error-vastaukseen vaan konsoliin tulee validationerror
 blogsRouter.post('/', (request, response) => {
-  const blog = new Blog(request.body)
+  const { body } = request
+  const blog = new Blog({
+    title: body.title,
+    author: body.author,
+    url: body.url,
+    likes: body.likes === undefined ? 0 : body.likes
+  })
 
   blog
     .save()
     .then(result => {
-      response.status(201).json(result)
+      response.status(201).json(result.toJSON())
     })
 })
 

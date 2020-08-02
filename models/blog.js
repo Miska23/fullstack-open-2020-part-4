@@ -21,11 +21,19 @@ const blogSchema = mongoose.Schema({
   },
   likes: {
     type: Number,
-    min: 0,
-    required: true
+    min: 0
+    // required: true
   }
 })
 
 blogSchema.plugin(uniqueValidator)
+
+blogSchema.set('toJSON', {
+  transform: (document, returnedObject) => {
+    returnedObject.id = returnedObject._id.toString() //! _id-olio merkkijonoksi ja se olion.id:ksi
+    delete returnedObject._id //! ominaisuuden poisto
+    delete returnedObject.__v  //! ominaisuuden poisto
+  }
+})
 
 module.exports = mongoose.model('Blog', blogSchema)

@@ -66,18 +66,12 @@ const mostLikes = function(blogs) {
 
 }
 
-//* tarkista jokainen element sen varalta että property ei ole undefined
-//* funktio palauttaa true vain jos kaikkien elementtien property ei ole undefined
-const isPropertyOfEveryElementNotUndefined = function(array, property) {
-  return array.every(element => typeof(element[property]) !== 'undefined')
-}
 
 module.exports = {
   dummy,
   totalLikes,
   favoriteBlog,
   mostBlogs,
-  mostLikes,
-  isPropertyOfEveryElementNotUndefined
+  mostLikes
 }
 

@@ -5,6 +5,7 @@ const app = require('../app')
 const api = supertest(app) //* nyt api-muuttujalla voi tehdä testejä
 
 const testBlogs = require('../utils/testBlogs')
+const list_helper = require('../utils/list_helper')
 // const logger = require('../utils/logger')
 
 //* alustus eli talletus ilman POSTIa. "npm test" avaa yhteyden testitietokantaan, jolloin
@@ -29,6 +30,9 @@ beforeEach(async () => {
 //* on avattu testitietokantaan
 
 
+//TODO: describe-lohkot paikoilleen
+//TODO: dependabot-alertin korjaus
+
 test('blogs are returned as json', async () => {
   await api
     .get('/api/blogs')
@@ -48,11 +52,11 @@ test('the first blog is about React patterns', async () => {
 })
 
 //* 4.9
-//TODO: kaikkien blogien testaaminen .id-ominaisuuden osalta
-test('a blog should have an "id" property', async () => {
+test('all blogs should have an "id" property', async () => {
   const response = await api.get('/api/blogs')
   console.log('response.body: ', response.body)
-  expect(response.body[0].id).toBeDefined()
+  //* jos yhdenkin arrayn elementin property on undefined, funktio palauttaa true
+  expect(list_helper.isPropertyOfEveryElementNotUndefined(response.body, 'id')).toBeTruthy()
 })
 
 //* 4.10
@@ -78,7 +82,6 @@ test('it is possible to create new blogs', async () => {
 })
 
 //* 4.11: jos kentälle likes ei anneta arvoa, asetetaan sen arvoksi 0
-//TODO: lisätyn muistiinpanon hakeminen dynaamisesti?
 test('if blog is added without likes, likes will set to 0', async () => {
   const newBlog = testBlogs.blogiIlmanLikejä
 
@@ -90,11 +93,13 @@ test('if blog is added without likes, likes will set to 0', async () => {
 
   const response = await api.get('/api/blogs')
 
-  expect(response.body[2].likes).toBe(0)
+  const index = testBlogs.initialBlogs.length //* indeksinä initialBlogisien pituus, joka on aina +1 indeksien määrään
+
+  expect(response.body[index].likes).toBe(0)
 })
 
-// TODO: 4.12 jo uusi blogi ei sisällä kenttiä title ja url, pyyntöön vastataan statuskoodilla 400 Bad request
-/* test('if blog is added without title and url, status code of response will be 400', async () => {
+//* 4.12
+test('if blog is added without title and url, status code of response will be 400', async () => {
   const newBlog = testBlogs.virheellinenBlogi
 
   await api
@@ -103,8 +108,9 @@ test('if blog is added without likes, likes will set to 0', async () => {
     .expect(400)
     .expect('Content-Type', /application\/json/)
 })
- */
+
 
 afterAll(async () => {
-  await mongoose.connection.close()
+  //* alkup.: await mongoose.connection.close()
+  await mongoose.disconnect()
 })

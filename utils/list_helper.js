@@ -1,8 +1,6 @@
 
 const _ = require('lodash')
 
-const testBlogs = require('../utils/testBlogs')
-
 const logger = require('./logger')
 
 
@@ -23,7 +21,6 @@ const favoriteBlog = function(blogs) {
     return mostVotes.likes > current.likes ? mostVotes : current
   })
 }
-
 
 const mostBlogs = function(blogs) {
   const countBy = _.countBy(blogs, 'author')
@@ -69,11 +66,18 @@ const mostLikes = function(blogs) {
 
 }
 
+//* tarkista jokainen element sen varalta että property ei ole undefined
+//* funktio palauttaa true vain jos kaikkien elementtien property ei ole undefined
+const isPropertyOfEveryElementNotUndefined = function(array, property) {
+  return array.every(element => typeof(element[property]) !== 'undefined')
+}
+
 module.exports = {
   dummy,
   totalLikes,
   favoriteBlog,
   mostBlogs,
-  mostLikes
+  mostLikes,
+  isPropertyOfEveryElementNotUndefined
 }
 

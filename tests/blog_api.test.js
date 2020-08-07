@@ -7,8 +7,6 @@ const api = supertest(app) //* nyt api-muuttujalla voi tehdä testejä
 const helper = require('../utils/blog_api_helper')
 // const logger = require('../utils/logger')
 
-//TODO: testien muokkaaminen siten että ne toimivat myös yksin käynnistettyinä (lisäys- ja poisto-operaatiot)
-
 //* alustus eli talletus ilman POSTIa. "npm test" avaa yhteyden testitietokantaan, jolloin
 //* operaatioiden kutsuminen Blog-modelilla käyttää operaatioihin sitä Mongo-tietokantaa,
 //* johon ollaan yhdistettynä (eli samaan tapaan kuin tuotantomoodissa kontrollereiden avulla mutta
@@ -23,6 +21,7 @@ const helper = require('../utils/blog_api_helper')
 //* on avattu testitietokantaan
 
 describe('when there are some blogs saved in database', () => {
+  //* tehdään vain tämän lohkon alussa, minkä jälkeen tässä tallennetut blogit haetaan helper.blogsInDatabase-funktiolla
   beforeEach(async () => {
     await Blog.deleteMany({})
 
@@ -60,7 +59,15 @@ describe('when there are some blogs saved in database', () => {
 })
 
 describe('saving a blog to database', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
 
+    let blogObject = new Blog(helper.initialBlogs[0])
+    await blogObject.save()
+
+    blogObject = new Blog(helper.initialBlogs[1])
+    await blogObject.save()
+  })
   //* 4.10
   test('is successful with valid data', async () => {
     const newBlog = helper.blogToSaveSuccessfully
@@ -72,9 +79,10 @@ describe('saving a blog to database', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
-    const blogsAfterAddition = await helper.blogsInDatabase()
-    const initialLength = helper.initialBlogs.length
-    expect(blogsAfterAddition).toHaveLength(initialLength + 1)
+    const blogsAfterAddition = await helper.blogsInDatabase() //* tässä kohtaa pituus === 3
+
+    const lengthAfterOneAddition = helper.initialBlogs.length + 1
+    expect(blogsAfterAddition).toHaveLength(lengthAfterOneAddition)
 
     const titles = blogsAfterAddition.map(r => r.title)
     expect(titles).toContain(newBlogTitle)
@@ -90,12 +98,12 @@ describe('saving a blog to database', () => {
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
-    const blogsAfterAddition = await helper.blogsInDatabase()
+    const blogsAfterAddition = await helper.blogsInDatabase() //* tässä kohtaa pituus === 3
 
-    const lengthAfterOperations = helper.initialBlogs.length + 2
-    expect(blogsAfterAddition).toHaveLength(lengthAfterOperations)
+    const lengthAfterOneAddition = helper.initialBlogs.length + 1
+    expect(blogsAfterAddition).toHaveLength(lengthAfterOneAddition)
 
-    const indexOfNewBlog = blogsAfterAddition.length -1 //* indeksinä initialBlogisien pituus, joka on aina +1 indeksien määrään
+    const indexOfNewBlog = blogsAfterAddition.length -1 //* viimeiseksi tallennetun indeksi on aina pituus -1
     expect(blogsAfterAddition[indexOfNewBlog].likes).toBe(0)
   })
 
@@ -109,13 +117,22 @@ describe('saving a blog to database', () => {
       .expect(400)
       .expect('Content-Type', /application\/json/)
 
-    const blogsAfterFailedAddition = await helper.blogsInDatabase()
-    const lengthAfterOperations = helper.initialBlogs.length + 2
-    expect(blogsAfterFailedAddition).toHaveLength(lengthAfterOperations)
+    const blogsAfterFailedAddition = await helper.blogsInDatabase() //* tässä kohtaa pituus edelleen  === 4
+
+    expect(blogsAfterFailedAddition).toHaveLength(helper.initialBlogs.length)
   })
 })
 
 describe('deleting a single blog', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+
+    let blogObject = new Blog(helper.initialBlogs[0])
+    await blogObject.save()
+
+    blogObject = new Blog(helper.initialBlogs[1])
+    await blogObject.save()
+  })
   //* 4.13
   test('is successful with a valid id ', async () => {
 
@@ -128,21 +145,19 @@ describe('deleting a single blog', () => {
       .delete(`/api/blogs/${blogToDelete.id}`)
       .expect(204)
 
-    //* kaikkien hakeminen tallennuksen jälkeen eli initialBlogs - 1
-    const blogsAfterDeletion = await helper.blogsInDatabase()
+    //* kaikkien hakeminen tallennuksen jälkeen eli initialBlogs - + 2 - 1
+    const blogsAfterDeletion = await helper.blogsInDatabase() //* tässä kohtaa pituus === 1
 
-    const lengthAfterOperations = helper.initialBlogs.length + 1
-
-    expect(blogsAfterDeletion).toHaveLength(lengthAfterOperations)
+    const lengthAfterOneRemoval = helper.initialBlogs.length - 1
+    expect(blogsAfterDeletion).toHaveLength(lengthAfterOneRemoval)
 
     const titles = blogsAfterDeletion.map(blog => blog.title)
-
     expect(titles).not.toContain(blogToDelete.title)
 
   })
 })
 
 afterAll(async () => {
-  //* alkup.: await mongoose.connection.close()
+  //* alkup. oli: await mongoose.connection.close()
   await mongoose.disconnect()
 })

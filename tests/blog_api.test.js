@@ -58,6 +58,41 @@ describe('when there are some blogs saved in database', () => {
   })
 })
 
+describe('requesting a single blog', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+
+    let blogObject = new Blog(helper.initialBlogs[0])
+    await blogObject.save()
+
+    blogObject = new Blog(helper.initialBlogs[1])
+    await blogObject.save()
+  })
+
+  test('is successful with a valid id', async () => {
+    const initialBlogs = await helper.blogsInDatabase()
+    const blogToView = initialBlogs[0]
+
+    const result = await api
+      .get(`/api/blogs/${blogToView.id}`)
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.title).toEqual(blogToView.title)
+  })
+
+  test('fails with an invalid id', async () => {
+    const initialBlogs = await helper.blogsInDatabase()
+    const blogToView = initialBlogs[0]
+
+    const invalidId = blogToView.id.slice(0, -1) + 'ö'
+
+    await api
+      .get(`/api/blogs/${invalidId}`)
+      .expect(400)
+  })
+})
+
 describe('saving a blog to database', () => {
   beforeEach(async () => {
     await Blog.deleteMany({})
@@ -205,7 +240,6 @@ describe('updating a single blog', () => {
     }
 
     const invalidId = blogToUpdate.id.slice(0, -1) + 'ö'
-    console.log('invalidId: ', invalidId)
 
     //* päivitys
     await api

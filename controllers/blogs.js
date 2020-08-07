@@ -55,5 +55,24 @@ blogsRouter.delete('/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
+//* 4.14
+blogsRouter.put('/:id', (request, response, next) => {
+
+  const id = request.params.id
+  const { body } = request
+
+  //* vain likejen päivittäminen on mahdollista
+  //* pyyntö ei feilaa jos annetaan muita tietoja bodyssa mutta ne eivät muutu
+  const updatedInfo = {
+    likes: body.likes === undefined ? 0 : body.likes
+  }
+
+  Blog.findByIdAndUpdate(id, updatedInfo, { runValidators: true, context: 'query', new: true })
+    .then(updatedBlog => {
+      response.json(updatedBlog)
+    })
+    .catch(error => next(error))
+})
+
 
 module.exports = blogsRouter

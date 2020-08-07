@@ -145,7 +145,6 @@ describe('deleting a single blog', () => {
       .delete(`/api/blogs/${blogToDelete.id}`)
       .expect(204)
 
-    //* kaikkien hakeminen tallennuksen jälkeen eli initialBlogs - + 2 - 1
     const blogsAfterDeletion = await helper.blogsInDatabase() //* tässä kohtaa pituus === 1
 
     const lengthAfterOneRemoval = helper.initialBlogs.length - 1
@@ -153,6 +152,74 @@ describe('deleting a single blog', () => {
 
     const titles = blogsAfterDeletion.map(blog => blog.title)
     expect(titles).not.toContain(blogToDelete.title)
+
+  })
+})
+
+describe('updating a single blog', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+
+    let blogObject = new Blog(helper.initialBlogs[0])
+    await blogObject.save()
+
+    blogObject = new Blog(helper.initialBlogs[1])
+    await blogObject.save()
+  })
+  //* 4.14
+  test('is successful with a valid id ', async () => {
+
+    //* hakee beforeEachissa tallennetut blogit ja tekee niistä arrayn
+    const initialBlogs = await helper.blogsInDatabase()
+    const blogToUpdate = initialBlogs[0]
+
+    const updatedBlogBody = {
+      likes: 3
+    }
+
+    //* päivitys
+    await api
+      .put(`/api/blogs/${blogToUpdate.id}`)
+      .send(updatedBlogBody)
+      .expect(200)
+
+    //* kaikkien hakeminen muutoksen jälkeen
+    const blogsAfterUpdating = await helper.blogsInDatabase()
+
+    expect(blogsAfterUpdating).toHaveLength(helper.initialBlogs.length)
+
+    const updatedLikes = blogsAfterUpdating[0].likes //* muutettu on edelleen listan ensimmäinen
+    expect(updatedLikes).toBe(updatedBlogBody.likes)
+
+  })
+
+  //* 4.14
+  test('fails with an invalid id ', async () => {
+
+    //* hakee beforeEachissa tallennetut blogit ja tekee niistä arrayn
+    const initialBlogs = await helper.blogsInDatabase()
+    const blogToUpdate = initialBlogs[0]
+
+    const updatedBlogBody = {
+      likes: 3
+    }
+
+    const invalidId = blogToUpdate.id.slice(0, -1) + 'ö'
+    console.log('invalidId: ', invalidId)
+
+    //* päivitys
+    await api
+      .put(`/api/blogs/${invalidId}`)
+      .send(updatedBlogBody)
+      .expect(400)
+
+    //* kaikkien hakeminen muutoksen jälkeen
+    const blogsAfterUpdating = await helper.blogsInDatabase()
+
+    expect(blogsAfterUpdating).toHaveLength(helper.initialBlogs.length)
+
+    const failedUpdatedLikes = blogsAfterUpdating[0].likes //* muutettu on edelleen listan ensimmäinen
+    expect(failedUpdatedLikes).toBe(blogToUpdate.likes)
 
   })
 })

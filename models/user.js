@@ -6,7 +6,7 @@ const userSchema = mongoose.Schema({
     type: String,
     minlength: 3,
     required: true,
-    unique: true,
+    unique: true
   },
   name: {
     type: String,
@@ -20,8 +20,8 @@ userSchema.plugin(uniqueValidator)
 
 userSchema.set('toJSON', {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString() //! _id-olio merkkijonoksi ja se olion.id:ksi
-    delete returnedObject._id //! ominaisuuden poisto
+    returnedObject.id = returnedObject._id.toString()
+    delete returnedObject._id
     delete returnedObject.__v
     delete returnedObject.passwordHash //* ei palauteta hashia
   }

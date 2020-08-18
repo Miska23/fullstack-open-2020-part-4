@@ -45,45 +45,37 @@ blogsRouter.get('/:id', async (request, response, next) => {
 //* 4.19
 blogsRouter.post('/', async (request, response, next) => {
 
-  const { body } = request
-
-  const decodedToken = jwt.verify(request.token, process.env.TOKEN_SECRET)
-  if (!decodedToken || !decodedToken.id) {
-    return response.status(401).json({ error: 'token missing or invalid' })
-  }
-
-  const user = await User.findById(decodedToken.id)
-  console.log('user: ', user)
-
-  // const users = await User.find({})
-
-  // const user = users[0]
-
-  const userId = user._id
-  console.log('userId: ', userId)
-
-  const blog = new Blog({
-    title: body.title,
-    author: body.author,
-    url: body.url,
-    likes: body.likes === undefined ? 0 : body.likes,
-    user: userId
-  })
-
+  let decodedToken = null
   try {
-    const savedBlog = await blog.save()
-    user.blogs = user.blogs.concat(savedBlog._id)
-    await user.save()
-    response.status(201).json(savedBlog.toJSON())
+    decodedToken = jwt.verify(request.token, process.env.TOKEN_SECRET)
   } catch (error) {
     next(error)
   }
-/*   blog
-    .save()
-    .then((result) => {
-      response.status(201).json(result.toJSON())
+
+  if (decodedToken && decodedToken.id) {
+    const { body } = request
+
+    const user = await User.findById(decodedToken.id)
+
+    const userId = user._id
+
+    const blog = new Blog({
+      title: body.title,
+      author: body.author,
+      url: body.url,
+      likes: body.likes === undefined ? 0 : body.likes,
+      user: userId
     })
-    .catch((error) => next(error)) */
+
+    try {
+      const savedBlog = await blog.save()
+      user.blogs = user.blogs.concat(savedBlog._id)
+      await user.save()
+      response.status(201).json(savedBlog.toJSON())
+    } catch (error) {
+      next(error)
+    }
+  }
 })
 
 //* 4.13

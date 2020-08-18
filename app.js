@@ -28,7 +28,7 @@ app.use(express.json())
 
 app.use('/api/users', usersRouter)
 //* get blogs ei toimi jos järjestys on tämä
-// app.use(middleware.tokenExtractor)
+app.use(middleware.tokenExtractor)
 app.use('/api/blogs', blogsRouter)
 app.use('/api/login', loginRouter)
 

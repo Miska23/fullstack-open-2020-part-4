@@ -26,10 +26,10 @@ app.use(cors())
 app.use(express.json())
 // app.use(middleware.requestLogger)
 
-//! morgan?
-
-app.use('/api/blogs', blogsRouter)
 app.use('/api/users', usersRouter)
+//* get blogs ei toimi jos järjestys on tämä
+// app.use(middleware.tokenExtractor)
+app.use('/api/blogs', blogsRouter)
 app.use('/api/login', loginRouter)
 
 app.use(middleware.unknownEndpoint)

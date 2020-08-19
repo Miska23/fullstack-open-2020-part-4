@@ -12,12 +12,7 @@ blogsRouter.get('/', async (request, response, next) => {
   } catch (error) {
     next(error)
   }
-/*   Blog
-    .find({})
-    .then(blogs => {
-      response.json(blogs.map(blog => blog.toJSON()))
-    })
-    .catch((error) => next(error)) */
+
 })
 
 blogsRouter.get('/:id', async (request, response, next) => {
@@ -31,15 +26,7 @@ blogsRouter.get('/:id', async (request, response, next) => {
   } catch (error) {
     next(error)
   }
-/*   Blog.findById(request.params.id)
-    .then(blog => {
-      if (blog) {
-        response.json(blog.toJSON())
-      } else {
-        response.status(404).end()
-      }
-    })
-    .catch(error => next(error)) */
+
 })
 
 //* 4.19
@@ -78,28 +65,67 @@ blogsRouter.post('/', async (request, response, next) => {
   }
 })
 
-//* 4.13
+//* 4.21
+//TODO: jos token on kunnossa mutta url viittaa olemattoman blogin indeksiin niin tulee virhe jota ei käsitellä
 blogsRouter.delete('/:id', async (request, response, next) => {
-  const id = request.params.id
+
+  //* token selville
+  let decodedToken = null
   try {
-    const deletedBlog = await Blog.findByIdAndRemove(id)
-    if (deletedBlog) {
-      response.status(204).end()
-    }
+    decodedToken = jwt.verify(request.token, process.env.TOKEN_SECRET)
   } catch (error) {
-    next(error)
+    next(error) //* jos token on virheellinen
   }
-/*   Blog
-    .findByIdAndRemove(id)
-    .then((result) => {
-      if (result) {
-        response.status(204).end()
+
+  //* kaikki tästä eteenpäin tehdään vain jos ehdot täyttyvät
+  if (decodedToken && decodedToken.id) {
+
+    //* etsitään pyynnön tehnyt käyttäjä (on olio)
+    const user = await User.findById(decodedToken.id)
+    const userId = user._id
+
+    const blogId = request.params.id
+
+    try {
+      //* etsitään blogia urlin id-osan perusteella
+      const blogToDelete = await Blog.findById(blogId)
+
+      //* jos blogi löytyy
+      if (blogToDelete) {
+
+        //* verrataan url:n määrämän blogin useria ja pyynnön tehnyttä useria
+        if ( blogToDelete.user.toString() === userId.toString() ) {
+
+          //* yritetään poistaa
+          try {
+            const deletedBlog = await Blog.findByIdAndRemove(blogId)
+
+            if (deletedBlog) {
+              response.status(204).end()
+            }
+
+          //* jos poisto epäonnistuu
+          } catch (error) {
+            next(error)
+          }
+
+        } else { //* jos token on valid mutta siihen liittyvä user on eri kuin poistettavan blogin user
+          response.status(401).end()
+        }
+
+      //* jos blogia ei löydy (eli ei olem. oleva valid id)
+      } else {
+        response.status(404).end()
       }
-    })
-    .catch(error => next(error)) */
+
+    //* jos id on malformatted eli esim. liian lyhyt
+    } catch (error) {
+      next(error)
+    }
+
+  }
 })
 
-//* 4.14
 blogsRouter.put('/:id', async (request, response, next) => {
 
   const id = request.params.id
@@ -118,11 +144,6 @@ blogsRouter.put('/:id', async (request, response, next) => {
     next(error)
   }
 
-/*   Blog.findByIdAndUpdate(id, updatedInfo, { runValidators: true, context: 'query', new: true })
-    .then(updatedBlog => {
-      response.json(updatedBlog)
-    })
-    .catch(error => next(error)) */
 })
 
 module.exports = blogsRouter

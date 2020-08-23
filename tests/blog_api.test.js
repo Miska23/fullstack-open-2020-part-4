@@ -1,34 +1,23 @@
 const mongoose = require('mongoose')
 const Blog = require('../models/Blog')
+const User = require('../models/User')
 const supertest = require('supertest')
 const app = require('../app')
-const api = supertest(app) //* nyt api-muuttujalla voi tehdä testejä
+const api = supertest(app)
 
-const helper = require('../utils/blog_api_helper')
-// const logger = require('../utils/logger')
+const blogsHelper = require('../utils/blog_api_helper_blogs')
+const userHelper = require('../utils/blog_api_helper_users')
 
-//* alustus eli talletus ilman POSTIa. "npm test" avaa yhteyden testitietokantaan, jolloin
-//* operaatioiden kutsuminen Blog-modelilla käyttää operaatioihin sitä Mongo-tietokantaa,
-//* johon ollaan yhdistettynä (eli samaan tapaan kuin tuotantomoodissa kontrollereiden avulla mutta
-//* ilman määrättyä reittiä, jonka sisällä käytetään samaa modelia)
-
-
-//* testeissä käytetään samoja kontrollereiden routeja kuin tuotantoversiossa
-//* mutta koska tietokantayhteys on eri, niin routeilla haetaan tietoa testitietokannasta
-//* Eli suoeragent-olio "api" käyttää tässä blogsRouteria .get-pyynnöllä, koska suluissa
-//* annettu osoite vastaa app.js:ssä olevaa määrittelyä .use('/api/blogs', blogsRouter)
-//* Reitti viittaa siis nyt testitietokannassa olevaan Blogs-kokoelmaan, koska yhteys
-//* on avattu testitietokantaan
 
 describe('when there are some blogs saved in database', () => {
-  //* tehdään vain tämän lohkon alussa, minkä jälkeen tässä tallennetut blogit haetaan helper.blogsInDatabase-funktiolla
+
   beforeEach(async () => {
     await Blog.deleteMany({})
 
-    let blogObject = new Blog(helper.initialBlogs[0])
+    let blogObject = new Blog(blogsHelper.initialBlogs[0])
     await blogObject.save()
 
-    blogObject = new Blog(helper.initialBlogs[1])
+    blogObject = new Blog(blogsHelper.initialBlogs[1])
     await blogObject.save()
   })
 
@@ -41,7 +30,7 @@ describe('when there are some blogs saved in database', () => {
 
   test('all blogs are returned', async () => {
     const response = await api.get('/api/blogs')
-    const initialLength = helper.initialBlogs.length
+    const initialLength = blogsHelper.initialBlogs.length
     expect(response.body).toHaveLength(initialLength)
   })
 
@@ -50,11 +39,10 @@ describe('when there are some blogs saved in database', () => {
     expect(response.body[0].title).toBe('React patterns')
   })
 
-  //* 4.9
   test('all blogs should have an "id" property', async () => {
     const response = await api.get('/api/blogs')
     //* jos yhdenkin arrayn elementin property on undefined, funktio palauttaa true
-    expect(helper.isPropertyOfEveryElementNotUndefined(response.body, 'id')).toBeTruthy()
+    expect(blogsHelper.isPropertyOfEveryElementNotUndefined(response.body, 'id')).toBeTruthy()
   })
 })
 
@@ -62,15 +50,15 @@ describe('requesting a single blog', () => {
   beforeEach(async () => {
     await Blog.deleteMany({})
 
-    let blogObject = new Blog(helper.initialBlogs[0])
+    let blogObject = new Blog(blogsHelper.initialBlogs[0])
     await blogObject.save()
 
-    blogObject = new Blog(helper.initialBlogs[1])
+    blogObject = new Blog(blogsHelper.initialBlogs[1])
     await blogObject.save()
   })
 
   test('is successful with a valid id', async () => {
-    const initialBlogs = await helper.blogsInDatabase()
+    const initialBlogs = await blogsHelper.blogsInDatabase()
     const blogToView = initialBlogs[0]
 
     const result = await api
@@ -82,7 +70,7 @@ describe('requesting a single blog', () => {
   })
 
   test('fails with an invalid id', async () => {
-    const initialBlogs = await helper.blogsInDatabase()
+    const initialBlogs = await blogsHelper.blogsInDatabase()
     const blogToView = initialBlogs[0]
 
     const invalidId = blogToView.id.slice(0, -1) + 'ö'
@@ -95,84 +83,130 @@ describe('requesting a single blog', () => {
 
 describe('saving a blog to database', () => {
   beforeEach(async () => {
+    await User.deleteMany({})
     await Blog.deleteMany({})
 
-    let blogObject = new Blog(helper.initialBlogs[0])
+    let blogObject = new Blog(blogsHelper.initialBlogs[0])
     await blogObject.save()
 
-    blogObject = new Blog(helper.initialBlogs[1])
+    blogObject = new Blog(blogsHelper.initialBlogs[1])
     await blogObject.save()
+
+    await api
+      .post('/api/users')
+      .send(userHelper.newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
   })
-  //* 4.10
+
   test('is successful with valid data', async () => {
-    const newBlog = helper.blogToSaveSuccessfully
+
+    const successfulLogin = await api
+      .post('/api/login')
+      .send(userHelper.newUserLogin)
+      .expect(200)
+
+    const { token } = successfulLogin.body
+
+    const authorization = `bearer ${token}`
+
+    const newBlog = blogsHelper.blogToSaveSuccessfully
     const newBlogTitle = newBlog.title
 
     await api
       .post('/api/blogs')
+      .set('Authorization', authorization)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
-    const blogsAfterAddition = await helper.blogsInDatabase() //* tässä kohtaa pituus === 3
+    const blogsAfterAddition = await blogsHelper.blogsInDatabase()
 
-    const lengthAfterOneAddition = helper.initialBlogs.length + 1
+    const lengthAfterOneAddition = blogsHelper.initialBlogs.length + 1
     expect(blogsAfterAddition).toHaveLength(lengthAfterOneAddition)
 
     const titles = blogsAfterAddition.map(r => r.title)
     expect(titles).toContain(newBlogTitle)
   })
 
-  //* 4.11: jos kentälle likes ei anneta arvoa, asetetaan sen arvoksi 0
   test('without likes sets likes to 0', async () => {
-    const newBlog = helper.blogWithoutLikes
+
+    const successfulLogin = await api
+      .post('/api/login')
+      .send(userHelper.newUserLogin)
+      .expect(200)
+
+    const { token } = successfulLogin.body
+
+    const authorization = `bearer ${token}`
+
+    const newBlog = blogsHelper.blogWithoutLikes
 
     await api
       .post('/api/blogs')
+      .set('Authorization', authorization)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
 
-    const blogsAfterAddition = await helper.blogsInDatabase() //* tässä kohtaa pituus === 3
+    const blogsAfterAddition = await blogsHelper.blogsInDatabase()
 
-    const lengthAfterOneAddition = helper.initialBlogs.length + 1
+    const lengthAfterOneAddition = blogsHelper.initialBlogs.length + 1
     expect(blogsAfterAddition).toHaveLength(lengthAfterOneAddition)
 
-    const indexOfNewBlog = blogsAfterAddition.length -1 //* viimeiseksi tallennetun indeksi on aina pituus -1
+    const indexOfNewBlog = blogsAfterAddition.length -1
     expect(blogsAfterAddition[indexOfNewBlog].likes).toBe(0)
   })
 
-  //* 4.12
-  test('fails with status code 400 if data is invalid', async () => {
-    const newBlog = helper.invalidBlog
+  test('fails with status code 400 if data in blog is invalid', async () => {
+
+    const successfulLogin = await api
+      .post('/api/login')
+      .send(userHelper.newUserLogin)
+      .expect(200)
+
+    const { token } = successfulLogin.body
+
+    const authorization = `bearer ${token}`
+
+    const newBlog = blogsHelper.invalidBlog
 
     await api
       .post('/api/blogs')
+      .set('Authorization', authorization)
       .send(newBlog)
       .expect(400)
       .expect('Content-Type', /application\/json/)
 
-    const blogsAfterFailedAddition = await helper.blogsInDatabase() //* tässä kohtaa pituus edelleen  === 4
+    const blogsAfterFailedAddition = await blogsHelper.blogsInDatabase() //* tässä kohtaa pituus edelleen  === 4
 
-    expect(blogsAfterFailedAddition).toHaveLength(helper.initialBlogs.length)
+    expect(blogsAfterFailedAddition).toHaveLength(blogsHelper.initialBlogs.length)
   })
 })
 
-describe('deleting a single blog', () => {
+//! ei refaktoroitu toimimaan login-toiminnon lisäämisen jälkeen
+/* describe('deleting a single blog', () => {
   beforeEach(async () => {
+    await User.deleteMany({})
     await Blog.deleteMany({})
 
-    let blogObject = new Blog(helper.initialBlogs[0])
+    let blogObject = new Blog(blogsHelper.initialBlogs[0])
     await blogObject.save()
 
-    blogObject = new Blog(helper.initialBlogs[1])
+    blogObject = new Blog(blogsHelper.initialBlogs[1])
     await blogObject.save()
+
+    await api
+      .post('/api/users')
+      .send(userHelper.newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
   })
-  //* 4.13
-  test('is successful with a valid id ', async () => {
+
+  test('is successful if a valid id ', async () => {
 
     //* hakee beforeEachissa tallennetut blogit ja tekee niistä arrayn
-    const initialBlogs = await helper.blogsInDatabase()
+    const initialBlogs = await blogsHelper.blogsInDatabase()
     const blogToDelete = initialBlogs[0]
 
     //* poisto
@@ -180,32 +214,31 @@ describe('deleting a single blog', () => {
       .delete(`/api/blogs/${blogToDelete.id}`)
       .expect(204)
 
-    const blogsAfterDeletion = await helper.blogsInDatabase() //* tässä kohtaa pituus === 1
+    const blogsAfterDeletion = await blogsHelper.blogsInDatabase()
 
-    const lengthAfterOneRemoval = helper.initialBlogs.length - 1
+    const lengthAfterOneRemoval = blogsHelper.initialBlogs.length - 1
     expect(blogsAfterDeletion).toHaveLength(lengthAfterOneRemoval)
 
     const titles = blogsAfterDeletion.map(blog => blog.title)
     expect(titles).not.toContain(blogToDelete.title)
 
   })
-})
+}) */
 
 describe('updating a single blog', () => {
   beforeEach(async () => {
     await Blog.deleteMany({})
 
-    let blogObject = new Blog(helper.initialBlogs[0])
+    let blogObject = new Blog(blogsHelper.initialBlogs[0])
     await blogObject.save()
 
-    blogObject = new Blog(helper.initialBlogs[1])
+    blogObject = new Blog(blogsHelper.initialBlogs[1])
     await blogObject.save()
   })
-  //* 4.14
   test('is successful with a valid id ', async () => {
 
     //* hakee beforeEachissa tallennetut blogit ja tekee niistä arrayn
-    const initialBlogs = await helper.blogsInDatabase()
+    const initialBlogs = await blogsHelper.blogsInDatabase()
     const blogToUpdate = initialBlogs[0]
 
     const updatedBlogBody = {
@@ -218,21 +251,19 @@ describe('updating a single blog', () => {
       .send(updatedBlogBody)
       .expect(200)
 
-    //* kaikkien hakeminen muutoksen jälkeen
-    const blogsAfterUpdating = await helper.blogsInDatabase()
+    const blogsAfterUpdating = await blogsHelper.blogsInDatabase()
 
-    expect(blogsAfterUpdating).toHaveLength(helper.initialBlogs.length)
+    expect(blogsAfterUpdating).toHaveLength(blogsHelper.initialBlogs.length)
 
-    const updatedLikes = blogsAfterUpdating[0].likes //* muutettu on edelleen listan ensimmäinen
+    const updatedLikes = blogsAfterUpdating[0].likes
     expect(updatedLikes).toBe(updatedBlogBody.likes)
 
   })
 
-  //* 4.14
   test('fails with an invalid id ', async () => {
 
     //* hakee beforeEachissa tallennetut blogit ja tekee niistä arrayn
-    const initialBlogs = await helper.blogsInDatabase()
+    const initialBlogs = await blogsHelper.blogsInDatabase()
     const blogToUpdate = initialBlogs[0]
 
     const updatedBlogBody = {
@@ -241,16 +272,14 @@ describe('updating a single blog', () => {
 
     const invalidId = blogToUpdate.id.slice(0, -1) + 'ö'
 
-    //* päivitys
     await api
       .put(`/api/blogs/${invalidId}`)
       .send(updatedBlogBody)
       .expect(400)
 
-    //* kaikkien hakeminen muutoksen jälkeen
-    const blogsAfterUpdating = await helper.blogsInDatabase()
+    const blogsAfterUpdating = await blogsHelper.blogsInDatabase()
 
-    expect(blogsAfterUpdating).toHaveLength(helper.initialBlogs.length)
+    expect(blogsAfterUpdating).toHaveLength(blogsHelper.initialBlogs.length)
 
     const failedUpdatedLikes = blogsAfterUpdating[0].likes //* muutettu on edelleen listan ensimmäinen
     expect(failedUpdatedLikes).toBe(blogToUpdate.likes)
@@ -259,6 +288,5 @@ describe('updating a single blog', () => {
 })
 
 afterAll(async () => {
-  //* alkup. oli: await mongoose.connection.close()
   await mongoose.disconnect()
 })

@@ -24,9 +24,6 @@ const isPropertyOfEveryElementNotUndefined = function(array, property) {
 
 module.exports = {
   initialUsers,
-  /*   blogToSaveSuccessfully,
-  blogWithoutLikes,
-  invalidBlog, */
   usersInDatabase,
   isPropertyOfEveryElementNotUndefined
 }

@@ -29,7 +29,6 @@ blogsRouter.get('/:id', async (request, response, next) => {
 
 })
 
-//* 4.19
 blogsRouter.post('/', async (request, response, next) => {
 
   let decodedToken = null
@@ -65,8 +64,6 @@ blogsRouter.post('/', async (request, response, next) => {
   }
 })
 
-//* 4.21
-//TODO: jos token on kunnossa mutta url viittaa olemattoman blogin indeksiin niin tulee virhe jota ei käsitellä
 blogsRouter.delete('/:id', async (request, response, next) => {
 
   //* token selville
@@ -131,8 +128,8 @@ blogsRouter.put('/:id', async (request, response, next) => {
   const id = request.params.id
   const { body } = request
 
-  //* vain likejen päivittäminen on mahdollista
-  //* pyyntö ei feilaa jos annetaan muita tietoja bodyssa mutta ne eivät muutu
+  //! vain likejen päivittäminen on mahdollista
+  //! pyyntö ei feilaa jos annetaan muita tietoja bodyssa mutta ne eivät muutu
   const updatedInfo = {
     likes: body.likes === undefined ? 0 : body.likes
   }

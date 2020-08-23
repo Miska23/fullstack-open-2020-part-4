@@ -26,6 +26,7 @@ usersRouter.post('/', async (request, response, next) => {
       name: body.name,
       passwordHash,
     })
+
     try {
       const savedUser = await user.save()
       response.status(201).json(savedUser.toJSON())
